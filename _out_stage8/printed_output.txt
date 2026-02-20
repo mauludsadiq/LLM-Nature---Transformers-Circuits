@@ -1,0 +1,9 @@
+================================================================================
+EXPERIMENT 8: SPARSE AUTOENCODERS — FINDING FEATURES
+================================================================================
+🧑‍🤝‍🧑 Friend-finishes-your-sentence check (Stage 8)
+   You:      One neuron means one concept because ...
+   Friend:   Because that's intuitive.
+   Reality:  Transformers use superposition; SAEs recover sparse features.
+
+🧩 SAE takeaway: extract sparse features from a dense stream.

@@ -1,0 +1,181 @@
+{
+  "clean_prompt": "The capital of France is",
+  "corrupted_prompt": "The capital of England is",
+  "device": "cpu",
+  "kind": "multilayer",
+  "model": "gpt2",
+  "p_london": {
+    "after": 0.002118190750479698,
+    "before": 0.03535575419664383,
+    "clean": 0.002118190750479698
+  },
+  "p_paris": {
+    "after": 0.03224378824234009,
+    "before": 0.0012233679881319404,
+    "clean": 0.03224378824234009
+  },
+  "patch_layers": [
+    9,
+    10,
+    11
+  ],
+  "patch_pos": 4,
+  "seed": 0,
+  "stage": 7,
+  "top_after": [
+    {
+      "p": 0.08459082245826721,
+      "token": " the",
+      "token_id": 262
+    },
+    {
+      "p": 0.04794899374246597,
+      "token": " now",
+      "token_id": 783
+    },
+    {
+      "p": 0.046161022037267685,
+      "token": " a",
+      "token_id": 257
+    },
+    {
+      "p": 0.032376404851675034,
+      "token": " France",
+      "token_id": 4881
+    },
+    {
+      "p": 0.03224378824234009,
+      "token": " Paris",
+      "token_id": 6342
+    },
+    {
+      "p": 0.02664003148674965,
+      "token": " in",
+      "token_id": 287
+    },
+    {
+      "p": 0.02640610933303833,
+      "token": " also",
+      "token_id": 635
+    },
+    {
+      "p": 0.02382919378578663,
+      "token": " not",
+      "token_id": 407
+    },
+    {
+      "p": 0.0233495831489563,
+      "token": " home",
+      "token_id": 1363
+    },
+    {
+      "p": 0.015507371164858341,
+      "token": " still",
+      "token_id": 991
+    }
+  ],
+  "top_before": [
+    {
+      "p": 0.09345538169145584,
+      "token": " the",
+      "token_id": 262
+    },
+    {
+      "p": 0.047531742602586746,
+      "token": " a",
+      "token_id": 257
+    },
+    {
+      "p": 0.04591880366206169,
+      "token": " now",
+      "token_id": 783
+    },
+    {
+      "p": 0.03652847558259964,
+      "token": " not",
+      "token_id": 407
+    },
+    {
+      "p": 0.03535575419664383,
+      "token": " London",
+      "token_id": 3576
+    },
+    {
+      "p": 0.026652313768863678,
+      "token": " in",
+      "token_id": 287
+    },
+    {
+      "p": 0.02147938869893551,
+      "token": " also",
+      "token_id": 635
+    },
+    {
+      "p": 0.017790336161851883,
+      "token": " home",
+      "token_id": 1363
+    },
+    {
+      "p": 0.01736152544617653,
+      "token": " England",
+      "token_id": 4492
+    },
+    {
+      "p": 0.012223097495734692,
+      "token": " still",
+      "token_id": 991
+    }
+  ],
+  "top_clean": [
+    {
+      "p": 0.08459082245826721,
+      "token": " the",
+      "token_id": 262
+    },
+    {
+      "p": 0.04794899374246597,
+      "token": " now",
+      "token_id": 783
+    },
+    {
+      "p": 0.046161022037267685,
+      "token": " a",
+      "token_id": 257
+    },
+    {
+      "p": 0.032376404851675034,
+      "token": " France",
+      "token_id": 4881
+    },
+    {
+      "p": 0.03224378824234009,
+      "token": " Paris",
+      "token_id": 6342
+    },
+    {
+      "p": 0.02664003148674965,
+      "token": " in",
+      "token_id": 287
+    },
+    {
+      "p": 0.02640610933303833,
+      "token": " also",
+      "token_id": 635
+    },
+    {
+      "p": 0.02382919378578663,
+      "token": " not",
+      "token_id": 407
+    },
+    {
+      "p": 0.0233495831489563,
+      "token": " home",
+      "token_id": 1363
+    },
+    {
+      "p": 0.015507371164858341,
+      "token": " still",
+      "token_id": 991
+    }
+  ]
+}

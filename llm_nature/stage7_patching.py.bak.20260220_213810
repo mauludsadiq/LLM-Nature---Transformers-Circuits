@@ -64,9 +64,11 @@ def topk(tok, probs, k=10):
 def capture_block_output(model, tok, prompt: str, layer: int, position: int, device: str):
     inputs = tok(prompt, return_tensors="pt").to(device)
     cache = {"vec": None}
+
     def hook(module, inp, out):
-        t = _block_out_tensor(out)
-        cache["vec"] = t[0, position, :].detach().clone()
+        hs = _block_out_tensor(out)
+        cache["vec"] = hs[0, position, :].detach().clone()
+
     h = model.transformer.h[layer].register_forward_hook(hook)
     with torch.no_grad():
         _ = model(**inputs)

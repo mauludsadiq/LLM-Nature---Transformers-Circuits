@@ -45,7 +45,7 @@ def run(ctx: RunContext) -> dict:
     sae = SparseAutoencoder(d_model=d_model, n_features=64, sparsity_lambda=0.05)
     opt = torch.optim.Adam(sae.parameters(), lr=1e-2)
     x = torch.randn(256, d_model)
-    for _ in range(200):
+    for _ in range(50):
         feats, rec, sp = sae(x)
         loss = ((rec - x)**2).mean() + sp
         opt.zero_grad(); loss.backward(); opt.step()

@@ -1,6 +1,6 @@
 import gc
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Tuple
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -14,12 +14,6 @@ def _topk(tokenizer, probs: torch.Tensor, k: int = 10) -> List[Dict[str, Any]]:
         tok = tokenizer.decode([tid])
         out.append({"token": tok, "token_id": int(tid), "p": float(p)})
     return out
-
-def _p_token(tokenizer, probs: torch.Tensor, s: str) -> Optional[float]:
-    tid = tokenizer.encode(s, add_special_tokens=False)
-    if len(tid) != 1:
-        return None
-    return float(probs[tid[0]].item())
 
 @dataclass
 class _Capture:
@@ -52,16 +46,14 @@ def run(ctx: RunContext) -> Dict[str, Any]:
 
     lines: List[str] = []
     lines.append(banner("EXPERIMENT 7: ACTIVATION PATCHING — GPT-2 BRAIN SURGERY"))
-    lines.append("")
     lines.append("🧑‍🤝‍🧑 Friend-finishes-your-sentence check (Stage 7)")
     lines.append(f"   You:      {clean} ...")
     lines.append("   Friend:   London. (confidently, but wrong)")
-    lines.append("   Reality:  Patch an internal vector and watch the distribution shift.")
-    lines.append("")
+    lines.append("   Reality:  We can patch an internal vector and watch the guess shift.\n")
     lines.append(f"Device: {device}")
     lines.append(f"Model: {model_name}")
-    lines.append("Patch site: layer=6, position=last_token")
-    lines.append("")
+    lines.append("Patch site: layer=6, position=last_token\n")
+    lines.append(f"Corrupted prompt: {corrupted!r}\n")
 
     mdl, tok = _load(model_name, device)
 
@@ -87,7 +79,6 @@ def run(ctx: RunContext) -> Dict[str, Any]:
         cap_corr.value = x.detach()
 
     blk = mdl.transformer.h[layer]
-
     cap_clean.handle = blk.register_forward_hook(hook_clean)
     with torch.no_grad():
         out_clean = mdl(ids_clean)
@@ -98,10 +89,8 @@ def run(ctx: RunContext) -> Dict[str, Any]:
         out_corr = mdl(ids_corr)
     cap_corr.handle.remove()
 
-    probs_clean = torch.softmax(out_clean.logits[0, -1, :], dim=-1)
-    probs_before = torch.softmax(out_corr.logits[0, -1, :], dim=-1)
-
-    top_clean = _topk(tok, probs_clean, k=10)
+    logits_before = out_corr.logits[0, -1, :]
+    probs_before = torch.softmax(logits_before, dim=-1)
     top_before = _topk(tok, probs_before, k=10)
 
     clean_vec = cap_clean.value[:, pos_clean, :].clone()
@@ -117,37 +106,17 @@ def run(ctx: RunContext) -> Dict[str, Any]:
         out_patched = mdl(ids_corr)
     h.remove()
 
-    probs_after = torch.softmax(out_patched.logits[0, -1, :], dim=-1)
+    logits_after = out_patched.logits[0, -1, :]
+    probs_after = torch.softmax(logits_after, dim=-1)
     top_after = _topk(tok, probs_after, k=10)
 
-    p_paris_clean = _p_token(tok, probs_clean, " Paris")
-    p_paris_before = _p_token(tok, probs_before, " Paris")
-    p_paris_after = _p_token(tok, probs_after, " Paris")
-
-    p_london_clean = _p_token(tok, probs_clean, " London")
-    p_london_before = _p_token(tok, probs_before, " London")
-    p_london_after = _p_token(tok, probs_after, " London")
-
-    lines.append(f"Clean prompt: {clean!r}")
-    lines.append("Top-10 next tokens (CLEAN):")
-    for t in top_clean:
-        lines.append(f"   {t['token']!r:10} p={t['p']:.4f}")
-    lines.append("")
-
-    lines.append(f"Corrupted prompt: {corrupted!r}")
     lines.append("Top-10 next tokens BEFORE patch:")
     for t in top_before:
         lines.append(f"   {t['token']!r:10} p={t['p']:.4f}")
     lines.append("")
-
     lines.append("Top-10 next tokens AFTER patch (clean vector injected):")
     for t in top_after:
         lines.append(f"   {t['token']!r:10} p={t['p']:.4f}")
-    lines.append("")
-
-    lines.append("Target token probabilities:")
-    lines.append(f"   p(' Paris')  clean={p_paris_clean}  before={p_paris_before}  after={p_paris_after}")
-    lines.append(f"   p(' London') clean={p_london_clean} before={p_london_before} after={p_london_after}")
     lines.append("")
 
     txt = "\n".join(lines)
@@ -160,10 +129,8 @@ def run(ctx: RunContext) -> Dict[str, Any]:
         "clean_prompt": clean,
         "corrupted_prompt": corrupted,
         "patch_site": {"layer": layer, "position_clean": pos_clean, "position_corrupted": pos_corr},
-        "top_clean": top_clean,
         "top_before": top_before,
         "top_after": top_after,
-        "p_paris": {"clean": p_paris_clean, "before": p_paris_before, "after": p_paris_after},
-        "p_london": {"clean": p_london_clean, "before": p_london_before, "after": p_london_after},
     })
+
     return {"stage": stage, "printed": txt}

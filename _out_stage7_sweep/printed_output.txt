@@ -1,0 +1,22 @@
+================================================================================
+EXPERIMENT 7 SWEEP: ACTIVATION PATCHING LAYER SCAN
+================================================================================
+
+Device: cpu
+Model: gpt2
+Clean prompt: 'The capital of France is'
+Corrupted prompt: 'The capital of England is'
+Patch pos: 4
+Target token Paris: ' Paris' id=6342
+Target token London: ' London' id=3576
+
+Top layers by London decrease (before - after):
+layer=11  dLondon=0.033238  dParis=0.031020  Paris(after)=0.032244  London(after)=0.002118
+layer=10  dLondon=0.032451  dParis=0.033633  Paris(after)=0.034857  London(after)=0.002905
+layer= 9  dLondon=0.029603  dParis=0.020351  Paris(after)=0.021575  London(after)=0.005753
+layer= 8  dLondon=0.014688  dParis=0.001133  Paris(after)=0.002356  London(after)=0.020668
+layer= 6  dLondon=0.010947  dParis=0.000215  Paris(after)=0.001439  London(after)=0.024409
+layer= 7  dLondon=0.009900  dParis=0.000326  Paris(after)=0.001549  London(after)=0.025456
+layer= 5  dLondon=0.007597  dParis=-0.000063  Paris(after)=0.001160  London(after)=0.027759
+layer= 4  dLondon=0.003462  dParis=0.000109  Paris(after)=0.001333  London(after)=0.031894
+

@@ -1,0 +1,10 @@
+{
+  "figures": [
+    "polysemantic_matrix.png",
+    "sae_features.png"
+  ],
+  "final_loss": 0.07296448945999146,
+  "final_sparsity": 0.024838563054800034,
+  "seed": 42,
+  "stage": 8
+}
