@@ -4,6 +4,43 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from .util import RunContext, banner, friend_sentence, write_text, write_json, ensure_dir
 
+def _block_out_tensor(out):
+    if isinstance(out, tuple):
+        for x in out:
+            try:
+                if torch.is_tensor(x):
+                    return x
+            except Exception:
+                pass
+        for x in out:
+            if hasattr(x, "shape"):
+                return x
+        return out[0]
+    if hasattr(out, "last_hidden_state") and out.last_hidden_state is not None:
+        return out.last_hidden_state
+    return out
+
+def _block_out_replace(out, new_t):
+    if isinstance(out, tuple):
+        outl = list(out)
+        for i, x in enumerate(outl):
+            try:
+                if torch.is_tensor(x) or hasattr(x, "shape"):
+                    outl[i] = new_t
+                    return tuple(outl)
+            except Exception:
+                pass
+        outl[0] = new_t
+        return tuple(outl)
+    if hasattr(out, "last_hidden_state"):
+        try:
+            out.last_hidden_state = new_t
+            return out
+        except Exception:
+            return new_t
+    return new_t
+
+
 # Minimal activation patching demo:
 # - run GPT-2 on two prompts (clean vs corrupted)
 # - patch one residual-stream vector at a fixed block output
@@ -28,7 +65,8 @@ def capture_block_output(model, tok, prompt: str, layer: int, position: int, dev
     inputs = tok(prompt, return_tensors="pt").to(device)
     cache = {"vec": None}
     def hook(module, inp, out):
-        cache["vec"] = out[0, position, :].detach().clone()
+        t = _block_out_tensor(out)
+        cache["vec"] = t[0, position, :].detach().clone()
     h = model.transformer.h[layer].register_forward_hook(hook)
     with torch.no_grad():
         _ = model(**inputs)
@@ -46,9 +84,9 @@ class ResidualPatcher:
         self.handle = None
 
     def _hook(self, module, inp, out):
-        out = out.clone()
-        out[0, self.position, :] = self.vec
-        return out
+        t = _block_out_tensor(out).clone()
+        t[0, self.position, :] = self.vec.to(t.device)
+        return _block_out_replace(out, t)
 
     def install(self):
         block = self.model.transformer.h[self.layer]
