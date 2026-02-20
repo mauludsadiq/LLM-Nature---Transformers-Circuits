@@ -1,0 +1,9 @@
+Run:
+  python -m llm_nature.journey --out _out
+
+Then read:
+  _out/PRINTED_OUTPUT_ALL_STAGES.txt
+
+This is the canonical human-readable artifact. It includes a “friend finishes your sentence”
+line per stage so you can see how each conceptual tool improves the explanation from:
+mechanism → position → time mask → layerwise thinking → circuits → intervention (patching).

@@ -1,0 +1,140 @@
+import argparse
+import numpy as np
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from .util import RunContext, banner, friend_sentence, write_text, write_json, ensure_dir
+
+# Minimal activation patching demo:
+# - run GPT-2 on two prompts (clean vs corrupted)
+# - patch one residual-stream vector at a fixed block output
+# - compare next-token probability top-k before vs after
+
+def get_next_token_probs(model, tok, prompt: str, device: str):
+    inputs = tok(prompt, return_tensors="pt").to(device)
+    with torch.no_grad():
+        out = model(**inputs)
+    logits = out.logits[0, -1, :]
+    probs = torch.softmax(logits, dim=-1)
+    return probs, inputs["input_ids"][0].tolist()
+
+def topk(tok, probs, k=10):
+    vals, idx = torch.topk(probs, k)
+    out = []
+    for v, i in zip(vals.tolist(), idx.tolist()):
+        out.append({"token_id": i, "token": tok.decode([i]), "p": float(v)})
+    return out
+
+def capture_block_output(model, tok, prompt: str, layer: int, position: int, device: str):
+    inputs = tok(prompt, return_tensors="pt").to(device)
+    cache = {"vec": None}
+    def hook(module, inp, out):
+        cache["vec"] = out[0, position, :].detach().clone()
+    h = model.transformer.h[layer].register_forward_hook(hook)
+    with torch.no_grad():
+        _ = model(**inputs)
+    h.remove()
+    if cache["vec"] is None:
+        raise RuntimeError("Failed to capture hidden state.")
+    return cache["vec"], inputs["input_ids"][0].tolist()
+
+class ResidualPatcher:
+    def __init__(self, model, layer: int, position: int, vec: torch.Tensor):
+        self.model = model
+        self.layer = layer
+        self.position = position
+        self.vec = vec
+        self.handle = None
+
+    def _hook(self, module, inp, out):
+        out = out.clone()
+        out[0, self.position, :] = self.vec
+        return out
+
+    def install(self):
+        block = self.model.transformer.h[self.layer]
+        self.handle = block.register_forward_hook(lambda m, i, o: self._hook(m, i, o))
+
+    def remove(self):
+        if self.handle is not None:
+            self.handle.remove()
+            self.handle = None
+
+def run(ctx: RunContext) -> dict:
+    torch.manual_seed(ctx.seed)
+    np.random.seed(ctx.seed)
+    ensure_dir(ctx.out_dir)
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    lines = []
+    lines.append(banner("EXPERIMENT 7: ACTIVATION PATCHING — GPT-2 BRAIN SURGERY"))
+    lines.append(friend_sentence(
+        7,
+        "The capital of France is ...",
+        "London. (confidently, but wrong)",
+        "We can patch an internal vector and watch the guess shift."
+    ))
+
+    model_name = "gpt2"
+    tok = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+    model.eval()
+
+    clean = "The capital of France is"
+    corrupted = "The capital of England is"
+
+    layer = 6
+
+    clean_ids = tok(clean, return_tensors="pt")["input_ids"][0].tolist()
+    pos_clean = len(clean_ids) - 1
+    clean_vec, _ = capture_block_output(model, tok, clean, layer=layer, position=pos_clean, device=device)
+
+    probs_before, corr_ids = get_next_token_probs(model, tok, corrupted, device=device)
+    pos_corr = len(corr_ids) - 1
+
+    patcher = ResidualPatcher(model, layer=layer, position=pos_corr, vec=clean_vec)
+    patcher.install()
+    probs_after, _ = get_next_token_probs(model, tok, corrupted, device=device)
+    patcher.remove()
+
+    top_before = topk(tok, probs_before, k=10)
+    top_after = topk(tok, probs_after, k=10)
+
+    def fmt(lst):
+        s = ""
+        for r in lst:
+            t = r["token"].replace("\n", "\\n")
+            s += f"   {t!r:12} p={r['p']:.4f}\n"
+        return s
+
+    lines.append(f"\nDevice: {device}\nModel: {model_name}\nPatch site: layer={layer}, position=last_token\n")
+    lines.append(f"\nCorrupted prompt: {corrupted!r}\n")
+    lines.append("\nTop-10 next tokens BEFORE patch:\n")
+    lines.append(fmt(top_before))
+    lines.append("\nTop-10 next tokens AFTER patch (clean vector injected):\n")
+    lines.append(fmt(top_after))
+
+    txt = "".join(lines)
+    write_text(f"{ctx.out_dir}/printed_output.txt", txt)
+    write_json(f"{ctx.out_dir}/artifacts.json", {
+        "stage": 7,
+        "seed": ctx.seed,
+        "device": device,
+        "model": model_name,
+        "clean_prompt": clean,
+        "corrupted_prompt": corrupted,
+        "patch_site": {"layer": layer, "position_clean": pos_clean, "position_corrupted": pos_corr},
+        "top_before": top_before,
+        "top_after": top_after,
+    })
+    return {"stage": 7, "printed": txt}
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--seed", type=int, default=42)
+    a = ap.parse_args()
+    run(RunContext(out_dir=a.out, seed=a.seed))
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+_out/
+.DS_Store
+
+
+# Local outputs
+_out/
+_out_stage7/
+.pytest_cache/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store

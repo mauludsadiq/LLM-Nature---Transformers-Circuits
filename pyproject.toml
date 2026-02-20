@@ -1,0 +1,9 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-nature-transformers-circuits"
+version = "0.1.0"
+description = "LLM Nature: Transformers + Circuits — interpretability journey with GPT-2 activation patching"
+requires-python = ">=3.9"
